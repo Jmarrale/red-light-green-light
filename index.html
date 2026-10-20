@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#14161b">
+<title>Red Light, Green Light</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='18' y='2' width='28' height='60' rx='12' fill='%2314161b'/%3E%3Ccircle cx='32' cy='16' r='8' fill='%23e5243b'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23ffc21a'/%3E%3Ccircle cx='32' cy='48' r='8' fill='%2316b05a'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --green:#16b05a; --go:#0d8541; --yellow:#ffc21a; --red:#e5243b;
+    --ink:#14161b; --ink2:#1d2027; --lamp:#2a2d35;
+    --font: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Trebuchet MS", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  html,body{height:100%}
+  body{
+    font-family:var(--font); background:var(--ink); color:#fff; overflow:hidden;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  }
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+  .screen{position:fixed;inset:0;display:none;flex-direction:column}
+  .screen.on{display:flex}
+
+  /* ---------- Menu ---------- */
+  #menu{
+    overflow-y:auto; align-items:center;
+    padding:max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom));
+    background:radial-gradient(120% 70% at 50% 0%, #262a33 0%, var(--ink) 65%);
+  }
+  .menu-wrap{width:min(560px,100%);margin:auto;display:flex;flex-direction:column;align-items:center;gap:22px}
+  .hero-light{display:flex;gap:12px;padding:12px 16px;background:#0b0c0f;border-radius:999px;box-shadow:inset 0 0 0 3px var(--lamp)}
+  .hero-light i{width:44px;height:44px;border-radius:50%;background:var(--lamp)}
+  .hero-light .r{animation:litR 4s infinite}
+  .hero-light .y{animation:litY 4s infinite}
+  .hero-light .g{animation:litG 4s infinite}
+  @keyframes litG{0%,45%{background:var(--green);box-shadow:0 0 26px var(--green)}45.1%,100%{background:var(--lamp);box-shadow:none}}
+  @keyframes litY{0%,45%{background:var(--lamp);box-shadow:none}45.1%,60%{background:var(--yellow);box-shadow:0 0 26px var(--yellow)}60.1%,100%{background:var(--lamp);box-shadow:none}}
+  @keyframes litR{0%,60%{background:var(--lamp);box-shadow:none}60.1%,100%{background:var(--red);box-shadow:0 0 26px var(--red)}}
+  h1{font-size:clamp(46px,13vw,86px);font-weight:900;line-height:.92;text-align:center;letter-spacing:-.01em}
+  h1 span{display:block}
+  .t-red{color:var(--red)} .t-green{color:var(--green)}
+  .modes{display:grid;gap:14px;width:100%}
+  .mode{
+    width:100%;text-align:left;padding:20px 22px;border-radius:22px;display:flex;flex-direction:column;gap:4px;
+    box-shadow:0 8px 0 rgba(0,0,0,.35);transition:transform .08s, box-shadow .08s;
+  }
+  .mode:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+  .mode b{font-size:clamp(24px,6.5vw,32px);font-weight:900}
+  .mode span{font-size:16px;opacity:.92;font-weight:700}
+  .mode.caller{background:var(--go)}
+  .mode.race{background:#2563eb}
+  .opts{width:100%;display:grid;gap:12px;background:var(--ink2);border-radius:20px;padding:16px}
+  .opt{display:flex;flex-direction:column;gap:8px}
+  .opt label{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9aa0ab}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+  .chips button{padding:10px 14px;border-radius:999px;background:#2b2f38;font-weight:800;font-size:15px;color:#cfd3da}
+  .chips button.sel{background:#fff;color:#111}
+  .rules{font-size:15px;line-height:1.45;color:#aeb3bc;text-align:center;font-weight:700;max-width:440px}
+  .rules b.g{color:var(--green)} .rules b.y{color:var(--yellow)} .rules b.r{color:#ff6b7d} .rules b.b{color:#f0abfc}
+
+  /* ---------- Boogie ---------- */
+  .boogie-card{width:100%;display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:22px;
+    background:linear-gradient(135deg,#86198f,#4c1d95 60%,#1e3a8a);box-shadow:0 8px 0 rgba(0,0,0,.35)}
+  .boogie-card .mascot{width:96px;flex:none}
+  .bc-text{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .bc-text b{font-size:26px;font-weight:900}
+  .bc-text > span{font-size:15px;font-weight:700;opacity:.92;line-height:1.35}
+  .bc-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px}
+  .spotify{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:#1ed760;color:#000;font-weight:900;font-size:15px;text-decoration:none;white-space:nowrap}
+  .spotify svg{width:22px;height:22px;flex:none}
+  .linkish{font-size:14px;font-weight:800;text-decoration:underline;opacity:.85;padding:6px 2px}
+  .boogie{display:block;width:100%;height:auto;overflow:visible;color:#ff9a5c}
+  .boogie .bb{transform-box:fill-box;transform-origin:50% 100%;animation:groove .5s infinite alternate ease-in-out}
+  .boogie .ba{transform-box:fill-box;transform-origin:50% 100%}
+  .boogie .ba1{animation:armL .25s infinite alternate ease-in-out}
+  .boogie .ba2{animation:armR .25s infinite alternate-reverse ease-in-out}
+  .boogie .bl{transform-box:fill-box;transform-origin:50% 0}
+  .boogie .bl1{animation:kick .25s infinite alternate ease-in-out}
+  .boogie .bl2{animation:kick .25s infinite alternate-reverse ease-in-out}
+  @keyframes groove{from{transform:translateY(0) rotate(-8deg)}to{transform:translateY(-6px) rotate(8deg)}}
+  @keyframes armL{from{transform:rotate(-45deg)}to{transform:rotate(10deg)}}
+  @keyframes armR{from{transform:rotate(45deg)}to{transform:rotate(-10deg)}}
+  @keyframes kick{from{transform:rotate(-20deg)}to{transform:rotate(20deg)}}
+  @keyframes disco{0%{background-color:#c026d3}50%{background-color:#7c3aed}100%{background-color:#2563eb}}
+  @keyframes discoDark{0%{background-color:#5a1066}50%{background-color:#3b1d7a}100%{background-color:#15306e}}
+
+  /* ---------- Shared game bits ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:max(14px, env(safe-area-inset-top)) 16px 0;position:relative;z-index:5}
+  .icon{width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.28);display:grid;place-items:center}
+  .icon svg{width:24px;height:24px}
+  .pop{animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(1.35)}to{transform:scale(1)}}
+  .overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(10,11,14,.72);padding:24px}
+  .card{background:var(--ink2);border-radius:26px;padding:28px 24px;width:min(420px,100%);text-align:center;display:grid;gap:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .card .big{font-size:clamp(34px,9vw,52px);font-weight:900;line-height:1}
+  .card .stats{font-size:18px;font-weight:700;color:#c9cdd4}
+  .card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+  .btn{padding:16px 22px;border-radius:16px;font-weight:900;font-size:20px;background:#2b2f38}
+  .btn.primary{background:var(--go)}
+
+  /* ---------- Caller ---------- */
+  #caller{background:var(--ink2);transition:background-color .12s}
+  #caller[data-phase=green]{background:var(--go)}
+  #caller[data-phase=yellow]{background:var(--yellow);color:#2a1d00}
+  #caller[data-phase=red]{background:var(--red)}
+  #caller[data-phase=yellow] .icon{background:rgba(0,0,0,.14)}
+  .call{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;text-align:center;padding:0 12px}
+  #cWord{font-size:min(26vw,40vh);font-weight:900;line-height:.9;letter-spacing:-.02em;text-shadow:0 6px 0 rgba(0,0,0,.15)}
+  #cSub{font-size:min(7vw,6.5vh);font-weight:900;opacity:.95}
+  .hint{text-align:center;font-weight:800;font-size:16px;padding:0 0 max(18px, env(safe-area-inset-bottom))}
+  #caller[data-phase=boogie]{animation:disco 1.6s infinite alternate linear}
+  #caller[data-phase=boogie] #cWord,
+  #caller[data-phase=ready] #cWord{font-size:min(19vw,22vh)}
+  #cBoogie{display:none;width:min(46vw,30vh)}
+  #caller[data-phase=boogie] #cBoogie{display:block}
+  #caller .spotify{padding:12px 16px}
+  #cPaused{flex-direction:column;gap:8px;cursor:pointer}
+  #cPaused b{font-size:clamp(40px,12vw,72px);font-weight:900}
+  #cPaused span{font-size:20px;font-weight:800;opacity:.8}
+
+  /* ---------- Race ---------- */
+  #race{background:#15171c;transition:background-color .15s}
+  #race[data-phase=green]{background:#0d4a2a}
+  #race[data-phase=yellow]{background:#57470a}
+  #race[data-phase=red]{background:#5c0f1b}
+  .mini-light{display:flex;gap:10px;padding:8px 12px;background:#0b0c0f;border-radius:999px;box-shadow:inset 0 0 0 3px var(--lamp)}
+  .mini-light i{width:clamp(30px,7vw,46px);height:clamp(30px,7vw,46px);border-radius:50%;background:var(--lamp);transition:background .1s, box-shadow .1s}
+  #race[data-phase=red] .mini-light .r{background:var(--red);box-shadow:0 0 22px var(--red)}
+  #race[data-phase=yellow] .mini-light .y{background:var(--yellow);box-shadow:0 0 22px var(--yellow)}
+  #race[data-phase=green] .mini-light .g,
+  #race[data-phase=win] .mini-light .g{background:var(--green);box-shadow:0 0 22px var(--green)}
+  #rWord{text-align:center;font-size:clamp(48px,min(13vh,22vw),120px);font-weight:900;line-height:1;padding:1.5vh 0 .5vh}
+  #race[data-phase=green] #rWord{color:#4ade80}
+  #race[data-phase=yellow] #rWord{color:var(--yellow)}
+  #race[data-phase=red] #rWord{color:#ff6b7d}
+  #race[data-phase=win] #rWord{font-size:clamp(40px,min(13vh,15vw),120px);color:var(--yellow)}
+  #race[data-phase=boogie]{animation:discoDark 1.6s infinite alternate linear}
+  #race[data-phase=boogie] .mini-light .b{background:#e879f9;box-shadow:0 0 22px #e879f9}
+  #race[data-phase=boogie] #rWord{color:#f0abfc;font-size:clamp(40px,min(13vh,17vw),120px)}
+  .lane.dancing .runner .body{transform-box:fill-box;transform-origin:50% 100%;animation:groove .4s infinite alternate ease-in-out}
+  .lane.dancing .runner .l1{animation:kick .2s infinite alternate}
+  .lane.dancing .runner .l2{animation:kick .2s infinite alternate-reverse}
+  .lanes{flex:1;display:flex;flex-direction:column;gap:12px;padding:8px 16px;min-height:0}
+  .lane{flex:1;display:flex;flex-direction:column;gap:6px;min-height:0;--p:0}
+  .lane-head{display:flex;justify-content:space-between;align-items:baseline;font-weight:900;font-size:18px;padding:0 4px}
+  .lane-head b{color:var(--c);filter:brightness(1.5)}
+  .lane-head span{font-size:15px;color:#c9cdd4}
+  .track{
+    --rw:min(15vw,11vh);
+    position:relative;flex:1;min-height:calc(var(--rw) * 1.35);border-radius:18px;overflow:hidden;
+    background:linear-gradient(rgba(255,255,255,.07),rgba(255,255,255,.03));box-shadow:inset 0 -6px 0 rgba(0,0,0,.25);
+  }
+  .two .track{--rw:min(13vw,8.5vh)}
+  .track::after{content:"";position:absolute;left:0;right:0;bottom:4%;height:3px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 18px,transparent 18px 34px)}
+  .startline{position:absolute;top:0;bottom:0;left:calc(var(--rw) + 10px);width:4px;background:rgba(255,255,255,.35)}
+  .finish{position:absolute;top:0;bottom:0;right:0;width:26px;background:conic-gradient(#fff 25%,#111 0 50%,#fff 0 75%,#111 0) 0 0/13px 13px}
+  .runner-wrap{position:absolute;bottom:4%;left:calc(var(--p) * (100% - var(--rw)));width:var(--rw);color:var(--c);z-index:2}
+  .lane.sliding .runner-wrap{transition:left .6s cubic-bezier(.3,.7,.3,1)}
+  .runner{display:block;width:100%;height:auto;overflow:visible}
+  .runner .leg{transform-box:fill-box;transform-origin:50% 0}
+  .lane.running .runner .l1{animation:leg .26s infinite alternate ease-in-out}
+  .lane.running .runner .l2{animation:leg .26s infinite alternate-reverse ease-in-out}
+  .lane.running .runner .body{animation:bob .13s infinite alternate}
+  @keyframes leg{from{transform:rotate(-38deg)}to{transform:rotate(38deg)}}
+  @keyframes bob{to{transform:translateY(-3px)}}
+  .lane.caught .runner{animation:shake .5s}
+  .lane.caught .track{box-shadow:inset 0 0 0 4px var(--red)}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px) rotate(-8deg)}40%{transform:translateX(8px) rotate(8deg)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+  .lane-msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;white-space:nowrap;
+    background:rgba(0,0,0,.6);padding:8px 16px;border-radius:999px;font-weight:900;font-size:clamp(16px,4.5vw,24px)}
+  .lane-msg:empty{display:none}
+  .holds{display:flex;gap:12px;padding:10px 16px max(18px, env(safe-area-inset-bottom))}
+  .hold{
+    flex:1;height:min(24vh,190px);border-radius:28px;background:var(--c);touch-action:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    box-shadow:0 10px 0 rgba(0,0,0,.4), inset 0 -6px 0 rgba(0,0,0,.18);transition:transform .06s, box-shadow .06s;
+  }
+  .hold span{font-weight:900;font-size:clamp(22px,5.5vw,40px);text-transform:uppercase;letter-spacing:.02em}
+  .hold small{font-weight:800;font-size:15px;opacity:.85}
+  .hold.down{transform:translateY(8px);box-shadow:0 2px 0 rgba(0,0,0,.4), inset 0 -2px 0 rgba(0,0,0,.18);filter:brightness(1.12)}
+  .keyhint{display:none}
+  @media (hover:hover) and (pointer:fine){.keyhint{display:inline}}
+
+  #confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+  #confetti i{position:absolute;top:-4vh;width:10px;height:16px;border-radius:2px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translate(var(--x),112vh) rotate(var(--r))}}
+
+  @media (prefers-reduced-motion: reduce){
+    .pop,.lane.caught .runner{animation:none}
+    .hero-light i{animation-duration:8s}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Menu ===== -->
+<section id="menu" class="screen on">
+  <div class="menu-wrap">
+    <div class="hero-light" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+    <h1><span class="t-red">Red Light</span><span class="t-green">Green Light</span></h1>
+    <div class="modes">
+      <button class="mode caller" data-start="caller">
+        <b>Be the caller</b>
+        <span id="callerDesc">You tap the lights and the screen calls them out loud. Everyone runs for real.</span>
+      </button>
+      <button class="mode race" data-start="race">
+        <b>Race on screen</b>
+        <span>Hold the button to run. Let go on red or you go back.</span>
+      </button>
+    </div>
+    <div class="opts">
+      <div class="opt"><label>Caller</label>
+        <div class="chips" data-opt="callerCtl">
+          <button data-v="tap">I tap the lights</button><button data-v="auto">Random lights</button>
+        </div>
+      </div>
+      <div class="opt"><label>Speed</label>
+        <div class="chips" data-opt="speed">
+          <button data-v="easy">Little kids</button><button data-v="medium">Big kids</button><button data-v="tricky">Tricky</button>
+        </div>
+      </div>
+      <div class="opt"><label>Racers</label>
+        <div class="chips" data-opt="players">
+          <button data-v="1">1 player</button><button data-v="2">2 players</button>
+        </div>
+      </div>
+      <div class="opt"><label>Extras</label>
+        <div class="chips">
+          <button data-toggle="voice">Voice</button><button data-toggle="sound">Beeps</button><button data-toggle="warn">Yellow light</button><button data-toggle="boogie">Boogie light</button>
+        </div>
+      </div>
+    </div>
+    <div class="boogie-card">
+      <div class="mascot" data-boogie></div>
+      <div class="bc-text">
+        <b>Meet Boogie</b>
+        <span>Sometimes the light turns disco. Everybody dance like Boogie, then freeze when it goes red!</span>
+        <div class="bc-row">
+          <a class="spotify" id="spotifyLink" target="_blank" rel="noopener">SPOTIFY_ICON Dance music</a>
+          <button class="linkish" id="setPlaylist">Use my playlist</button>
+        </div>
+      </div>
+    </div>
+    <p class="rules"><b class="g">Green light</b>: run. <b class="y">Yellow light</b>: walk slowly.
+      <b class="b">Boogie light</b>: dance! <b class="r">Red light</b>: freeze! Anyone still moving goes back to the start.</p>
+  </div>
+</section>
+
+<!-- ===== Caller mode ===== -->
+<section id="caller" class="screen" data-phase="count">
+  <div class="topbar">
+    <button class="icon" data-act="exit" aria-label="Back to menu"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
+    <a class="spotify" id="cSpotify" target="_blank" rel="noopener">SPOTIFY_ICON Music</a>
+    <button class="icon" data-act="pause" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg></button>
+  </div>
+  <div class="call"><div id="cBoogie" data-boogie></div><div id="cWord">3</div><div id="cSub">Get ready</div></div>
+  <div class="hint" id="cHint">Tap anywhere to pause</div>
+  <div id="cPaused" class="overlay" hidden><b>Paused</b><span>Tap to keep playing</span></div>
+</section>
+
+<!-- ===== Race mode ===== -->
+<section id="race" class="screen" data-phase="count">
+  <div class="topbar">
+    <button class="icon" data-act="exit" aria-label="Back to menu"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
+    <div class="mini-light" aria-hidden="true"><i class="r"></i><i class="y"></i><i class="g"></i><i class="b"></i></div>
+    <button class="icon" data-act="pause" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg></button>
+  </div>
+  <div id="rWord">3</div>
+  <div class="lanes" id="lanes"></div>
+  <div class="holds" id="holds"></div>
+
+  <div id="rPaused" class="overlay" hidden>
+    <div class="card">
+      <div class="big">Paused</div>
+      <div class="row"><button class="btn primary" data-act="resume">Keep playing</button><button class="btn" data-act="menu">Menu</button></div>
+    </div>
+  </div>
+  <div id="rWin" class="overlay" hidden>
+    <div class="card">
+      <div class="big" id="winTitle">You made it!</div>
+      <div class="stats" id="winStats"></div>
+      <div class="row"><button class="btn primary" data-act="again">Play again</button><button class="btn" data-act="menu">Menu</button></div>
+    </div>
+  </div>
+</section>
+
+<div id="confetti"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+
+  // Timing per speed (ms). run = how long you hold to cross the track; grace = reaction time after red;
+  // penalty = how far back you go when caught (1 = all the way to the start).
+  const SPEEDS = {
+    easy:   { green:[3000,6000], yellow:1500, red:[2500,4500], run:8000,  grace:700, penalty:.25 },
+    medium: { green:[1500,5000], yellow:1000, red:[2000,4000], run:9000,  grace:450, penalty:.5 },
+    tricky: { green:[700,4000],  yellow:600,  red:[1500,4000], run:10000, grace:300, penalty:1 },
+  };
+  const LABELS = {
+    green:  ['GO!',  'Green light'],
+    yellow: ['SLOW', 'Yellow light: walk slowly'],
+    red:    ['STOP!','Red light: freeze!'],
+    boogie: ['BOOGIE!','Boogie light: dance!'],
+  };
+  // Boogie light: after a red, sometimes the light turns disco and everyone dances, then it goes red again.
+  const BOOGIE_MS = [5000, 8000], BOOGIE_CHANCE = .35;
+  const SPOTIFY_DEFAULT = 'https://open.spotify.com/search/kids%20dance%20party';
+  const SPOTIFY_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#000"/><path d="M6.4 9.3c3.8-1.1 8-.8 11.1 1M7.1 12.4c3.1-.8 6.5-.5 9.1.9M7.8 15.3c2.5-.6 5-.4 7.1.7" stroke="#1ed760" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`;
+  const BOOGIE = `<svg class="boogie" viewBox="0 0 100 112" aria-hidden="true">
+      <ellipse cx="50" cy="108" rx="26" ry="4" fill="rgba(0,0,0,.25)"/>
+      <rect class="bl bl1" x="34" y="74" width="12" height="30" rx="6" fill="currentColor"/>
+      <rect class="bl bl2" x="54" y="74" width="12" height="30" rx="6" fill="currentColor"/>
+      <g class="bb">
+        <g class="ba ba1"><circle cx="15" cy="12" r="8" fill="currentColor"/><rect x="9" y="12" width="12" height="42" rx="6" fill="currentColor"/></g>
+        <g class="ba ba2"><circle cx="85" cy="12" r="8" fill="currentColor"/><rect x="79" y="12" width="12" height="42" rx="6" fill="currentColor"/></g>
+        <circle cx="50" cy="52" r="32" fill="currentColor"/>
+        <path d="M40 24 q4 -12 10 -2 q4 -12 10 0" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <rect x="28" y="40" width="20" height="12" rx="5" fill="#111"/><rect x="52" y="40" width="20" height="12" rx="5" fill="#111"/>
+        <rect x="46" y="43" width="8" height="3" fill="#111"/>
+        <rect x="31" y="42" width="7" height="3" rx="1.5" fill="rgba(255,255,255,.7)"/><rect x="55" y="42" width="7" height="3" rx="1.5" fill="rgba(255,255,255,.7)"/>
+        <path d="M37 61 Q50 78 63 61 Z" fill="#3a0d0d"/>
+      </g></svg>`;
+  const PLAYERS = [
+    { name:'Blue',   color:'#2563eb', key:'A' },
+    { name:'Purple', color:'#9333ea', key:'L' },
+  ];
+  const RUNNER = `<svg class="runner" viewBox="0 0 60 72" aria-hidden="true">
+      <ellipse cx="30" cy="69" rx="18" ry="3" fill="rgba(0,0,0,.35)"/>
+      <rect class="leg l1" x="19" y="44" width="9" height="22" rx="4.5" fill="currentColor"/>
+      <rect class="leg l2" x="32" y="44" width="9" height="22" rx="4.5" fill="currentColor"/>
+      <g class="body">
+        <circle cx="30" cy="28" r="24" fill="currentColor"/>
+        <circle cx="30" cy="28" r="24" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"/>
+        <circle cx="26" cy="24" r="6.5" fill="#fff"/><circle cx="40" cy="24" r="6.5" fill="#fff"/>
+        <circle cx="28.5" cy="24.5" r="3.2" fill="#111"/><circle cx="42.5" cy="24.5" r="3.2" fill="#111"/>
+        <path d="M27 36 q6 5 12 0" stroke="#111" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g></svg>`;
+
+  // ---------- Settings ----------
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('rlgl') || '{}'); } catch (e) {}
+  const S = {
+    speed: SPEEDS[saved.speed] ? saved.speed : 'easy',
+    players: saved.players === 2 ? 2 : 1,
+    voice: saved.voice !== false, sound: saved.sound !== false, warn: saved.warn !== false, boogie: saved.boogie !== false,
+    spotify: typeof saved.spotify === 'string' ? saved.spotify : '',
+    callerCtl: saved.callerCtl === 'auto' ? 'auto' : 'tap',
+    best: saved.best || {},
+    mode: null, phase: 'off', phaseStart: 0, phaseEnd: 0, countShown: 0, beforeRed: null,
+    paused: false, pauseAt: 0, over: false, raf: 0, last: 0, runTime: 0, racers: [],
+  };
+  const save = () => {
+    try {
+      localStorage.setItem('rlgl', JSON.stringify({ speed:S.speed, players:S.players, voice:S.voice, sound:S.sound,
+        warn:S.warn, boogie:S.boogie, spotify:S.spotify, callerCtl:S.callerCtl, best:S.best }));
+    } catch (e) {}
+  };
+  document.querySelectorAll('[data-boogie]').forEach(el => { el.innerHTML = BOOGIE; });
+  document.querySelectorAll('.spotify').forEach(el => { el.innerHTML = el.innerHTML.replace('SPOTIFY_ICON', SPOTIFY_ICON); });
+  function syncSpotify() {
+    document.querySelectorAll('.spotify').forEach(a => { a.href = S.spotify || SPOTIFY_DEFAULT; });
+    $('#setPlaylist').textContent = S.spotify ? 'Change playlist' : 'Use my playlist';
+  }
+
+  // ---------- Sound ----------
+  let ac = null;
+  function audio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+  function tone(freq, at, dur, type, vol, slideTo) {
+    if (!S.sound) return;
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + at, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.03);
+  }
+  const sfx = {
+    tick()   { tone(520, 0, .12, 'sine', .3); },
+    go()     { tone(660, 0, .12, 'square', .16); tone(990, .13, .25, 'square', .16); },
+    slow()   { tone(587, 0, .3, 'triangle', .3); },
+    stop()   { tone(240, 0, .5, 'sawtooth', .2, 150); },
+    caught() { tone(520, 0, .55, 'triangle', .3, 140); },
+    boogie() { [196, 247, 294, 392, 294, 247, 196, 392].forEach((f, i) => tone(f, i * .1, .09, 'square', .14)); },
+    win()    { [523, 659, 784].forEach((f, i) => tone(f, i * .12, .22, 'square', .14)); tone(1047, .38, .6, 'square', .14); },
+  };
+  function say(text) {
+    if (!S.voice || !('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05; u.pitch = 1.15; u.volume = 1;
+    speechSynthesis.speak(u);
+  }
+  const hush = () => { if ('speechSynthesis' in window) speechSynthesis.cancel(); };
+
+  // ---------- Screen helpers ----------
+  let wakeLock = null;
+  async function keepAwake(on) {
+    try {
+      if (on && 'wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+      else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (e) {}
+  }
+  function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); }
+  const scr = () => $('#' + S.mode);
+
+  // ---------- Menu ----------
+  function syncMenu() {
+    document.querySelectorAll('[data-opt]').forEach(g =>
+      g.querySelectorAll('button').forEach(b => b.classList.toggle('sel', String(S[g.dataset.opt]) === b.dataset.v)));
+    document.querySelectorAll('[data-toggle]').forEach(b => {
+      b.classList.toggle('sel', S[b.dataset.toggle]); b.setAttribute('aria-pressed', S[b.dataset.toggle]);
+    });
+    $('#callerDesc').textContent = S.callerCtl === 'tap'
+      ? 'Tap once for green or red. Double tap for Boogie. Everyone runs for real.'
+      : 'The screen picks the lights at random and calls them out loud. Everyone runs for real.';
+  }
+  $('#menu').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'setPlaylist') {
+      const v = prompt('Paste a Spotify playlist link. Leave it blank to go back to the kids dance search.', S.spotify);
+      if (v === null) return;
+      const link = v.trim();
+      if (link && !/^(https:\/\/([a-z]+\.)?spotify\.(com|link)\/|spotify:)/i.test(link)) { alert('That does not look like a Spotify link.'); return; }
+      S.spotify = link; save(); syncSpotify(); return;
+    }
+    const group = b.closest('[data-opt]');
+    if (group) {
+      const k = group.dataset.opt;
+      S[k] = k === 'players' ? +b.dataset.v : b.dataset.v;
+      save(); syncMenu(); sfx.tick(); return;
+    }
+    if (b.dataset.toggle) { S[b.dataset.toggle] = !S[b.dataset.toggle]; save(); syncMenu(); sfx.tick(); return; }
+    if (b.dataset.start) start(b.dataset.start);
+  });
+  syncMenu();
+  syncSpotify();
+
+  // ---------- Game flow ----------
+  function start(mode) {
+    // Let our beeps play over Spotify instead of stopping it (iPhone, Safari 17+)
+    try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
+    audio(); // unlock audio inside the tap
+    cancelAnimationFrame(S.raf);
+    S.mode = mode; S.paused = false; S.over = false; S.runTime = 0;
+    $('#cPaused').hidden = true; $('#rPaused').hidden = true; $('#rWin').hidden = true;
+    $('#confetti').innerHTML = '';
+    show(mode);
+    if (mode === 'race') buildRace();
+    if (document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    keepAwake(true);
+    say('Get ready!'); // first speech must happen inside the tap on iPhone
+    const now = performance.now();
+    S.last = now;
+    clearTimeout(tapTimer); lastTap = 0;
+    if (mode === 'caller' && S.callerCtl === 'tap') {
+      // You run the lights: nothing changes until you tap
+      S.phase = 'ready'; S.phaseEnd = Infinity; scr().dataset.phase = 'ready';
+      setWord('READY?', 'Tap for green light');
+      $('#cHint').textContent = 'Tap: green or red · Double tap: Boogie';
+    } else {
+      $('#cHint').textContent = 'Tap anywhere to pause';
+      setPhase('count', now);
+    }
+    S.raf = requestAnimationFrame(loop);
+  }
+
+  // Tap control for the caller: one tap flips green and red, two quick taps start Boogie.
+  // A single tap waits a moment to make sure a second tap isn't coming.
+  const DOUBLE_TAP_MS = 280;
+  let tapTimer = 0, lastTap = 0;
+  function callerTap() {
+    const now = performance.now();
+    if (now - lastTap < DOUBLE_TAP_MS) {
+      clearTimeout(tapTimer); lastTap = 0;
+      setManual('boogie');
+      return;
+    }
+    lastTap = now;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => setManual(S.phase === 'green' || S.phase === 'boogie' ? 'red' : 'green'), DOUBLE_TAP_MS);
+  }
+  function setManual(p) {
+    if (S.mode !== 'caller' || S.paused) return;
+    S.phase = p; scr().dataset.phase = p;
+    announce(p);
+  }
+
+  function exit() {
+    clearTimeout(tapTimer);
+    cancelAnimationFrame(S.raf);
+    S.mode = null; S.paused = false; S.over = false;
+    hush(); keepAwake(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    $('#confetti').innerHTML = '';
+    show('menu');
+  }
+
+  const rand = ([a, b]) => a + Math.random() * (b - a);
+
+  function setPhase(p, now) {
+    const sp = SPEEDS[S.speed];
+    S.phase = p; S.phaseStart = now; S.countShown = 0;
+    S.phaseEnd = now + (p === 'count' ? 2400 : p === 'green' ? rand(sp.green) : p === 'yellow' ? sp.yellow
+      : p === 'boogie' ? rand(BOOGIE_MS) : rand(sp.red));
+    scr().dataset.phase = p;
+    if (p === 'red') S.racers.forEach(r => { r.caughtThisRed = false; });
+    if (p !== 'count') announce(p);
+  }
+
+  function announce(p) {
+    setWord(LABELS[p][0], LABELS[p][1]);
+    if (p === 'green')  { sfx.go();   say('Green light!'); }
+    if (p === 'yellow') { sfx.slow(); say('Yellow light!'); }
+    if (p === 'red')    { sfx.stop(); say('Red light!'); }
+    if (p === 'boogie') { sfx.boogie(); say('Boogie light! Dance!'); }
+  }
+
+  function setWord(word, sub) {
+    const el = S.mode === 'caller' ? $('#cWord') : $('#rWord');
+    el.textContent = word;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    if (S.mode === 'caller') $('#cSub').textContent = sub;
+  }
+
+  function advance(now) {
+    const p = S.phase;
+    let next;
+    if (p === 'count') next = 'green';
+    else if (p === 'green') next = S.warn ? 'yellow' : 'red';
+    else if (p === 'yellow' || p === 'boogie') next = 'red';
+    else next = S.boogie && S.beforeRed !== 'boogie' && Math.random() < BOOGIE_CHANCE ? 'boogie' : 'green';
+    if (next === 'red') S.beforeRed = p;
+    setPhase(next, now);
+  }
+
+  function loop(now) {
+    S.raf = requestAnimationFrame(loop);
+    if (S.paused || S.over) { S.last = now; return; }
+    const dt = Math.min(64, now - S.last); S.last = now;
+    if (now >= S.phaseEnd) advance(now);
+    if (S.phase === 'count') {
+      const n = Math.max(1, 3 - Math.floor((now - S.phaseStart) / 800));
+      if (n !== S.countShown) { S.countShown = n; setWord(String(n), 'Get ready'); sfx.tick(); }
+    } else if (S.mode === 'race') {
+      S.runTime += dt;
+      raceTick(dt, now);
+    }
+  }
+
+  function pause() {
+    if (!S.mode || S.paused || S.over) return;
+    clearTimeout(tapTimer); lastTap = 0;
+    S.paused = true; S.pauseAt = performance.now();
+    hush();
+    S.racers.forEach(r => press(r, false));
+    if (S.mode === 'caller') $('#cPaused').hidden = false; else $('#rPaused').hidden = false;
+  }
+
+  function resume() {
+    if (!S.paused) return;
+    const now = performance.now(), d = now - S.pauseAt;
+    S.phaseStart += d; S.phaseEnd += d;
+    S.racers.forEach(r => { r.stunUntil += d; r.msgUntil += d; });
+    S.paused = false; S.last = now;
+    $('#cPaused').hidden = true; $('#rPaused').hidden = true;
+    if (LABELS[S.phase]) announce(S.phase);
+  }
+
+  // ---------- Caller controls ----------
+  const tapMode = () => S.mode === 'caller' && S.callerCtl === 'tap';
+  $('#caller').addEventListener('click', e => {
+    if (e.target.closest('.spotify')) return pause(); // opening Spotify pauses the game; tap to resume after
+    const b = e.target.closest('[data-act]');
+    if (b && b.dataset.act === 'exit') return exit();
+    if (b && b.dataset.act === 'pause') return S.paused ? resume() : pause();
+    if (S.paused) return resume();
+    if (!tapMode()) pause(); // random lights: tap anywhere to pause
+  });
+  // pointerdown instead of click so the lights answer the instant a finger lands
+  $('#caller').addEventListener('pointerdown', e => {
+    if (!tapMode() || S.paused || e.target.closest('.topbar a, .topbar button')) return;
+    callerTap();
+  });
+
+  // ---------- Race ----------
+  function buildRace() {
+    const n = S.players, lanes = $('#lanes'), holds = $('#holds');
+    lanes.innerHTML = ''; holds.innerHTML = '';
+    lanes.classList.toggle('two', n === 2);
+    S.racers = PLAYERS.slice(0, n).map(pl => {
+      const r = { ...pl, p:0, holding:false, needRelease:false, caughtThisRed:false, caught:0, stunUntil:0, msgUntil:0 };
+      r.lane = document.createElement('div');
+      r.lane.className = 'lane';
+      r.lane.style.setProperty('--c', r.color);
+      r.lane.innerHTML = `<div class="lane-head"><b>${n > 1 ? r.name : 'You'}</b><span class="cn">Caught 0 times</span></div>
+        <div class="track"><div class="startline"></div><div class="finish"></div>
+        <div class="runner-wrap">${RUNNER}</div><div class="lane-msg"></div></div>`;
+      lanes.append(r.lane);
+      r.btn = document.createElement('button');
+      r.btn.className = 'hold';
+      r.btn.style.setProperty('--c', r.color);
+      r.btn.innerHTML = `<span>Hold to run</span>` + (n > 1
+        ? `<small>${r.name}<span class="keyhint"> · key ${r.key}</span></small>`
+        : `<small class="keyhint">or hold the space bar</small>`);
+      holds.append(r.btn);
+      r.msg = r.lane.querySelector('.lane-msg');
+      r.cn = r.lane.querySelector('.cn');
+      bindHold(r);
+      r.lane.style.setProperty('--p', 0);
+      return r;
+    });
+  }
+
+  function bindHold(r) {
+    const b = r.btn;
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      try { b.setPointerCapture(e.pointerId); } catch (err) {}
+      press(r, true);
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, () => press(r, false)));
+  }
+
+  function press(r, on) {
+    if (!r) return;
+    r.holding = on;
+    r.btn.classList.toggle('down', on);
+    if (!on) r.needRelease = false;
+  }
+
+  function say1(r, text, now, ms) { r.msg.textContent = text; r.msgUntil = now + ms; }
+
+  function raceTick(dt, now) {
+    const sp = SPEEDS[S.speed];
+    for (const r of S.racers) {
+      if (r.msg.textContent && now > r.msgUntil) r.msg.textContent = '';
+      r.lane.classList.toggle('dancing', S.phase === 'boogie');
+      if (now < r.stunUntil) continue;
+      const moving = r.holding && !r.needRelease;
+      let running = false;
+      if (S.phase === 'green' || S.phase === 'yellow') {
+        if (moving) { r.p = Math.min(1, r.p + dt / sp.run * (S.phase === 'yellow' ? .5 : 1)); running = true; }
+        else if (r.holding && r.needRelease) say1(r, 'Let go, then hold again', now, 250);
+      } else if (S.phase === 'red' && moving && !r.caughtThisRed && now - S.phaseStart > sp.grace) {
+        catchRacer(r, now); continue;
+      }
+      r.lane.classList.toggle('running', running);
+      r.lane.style.setProperty('--p', r.p);
+      if (r.p >= 1) return win(r);
+    }
+  }
+
+  function catchRacer(r, now) {
+    const sp = SPEEDS[S.speed];
+    r.caughtThisRed = true; r.needRelease = true; r.caught++;
+    r.p = sp.penalty >= 1 ? 0 : Math.max(0, r.p - sp.penalty);
+    r.stunUntil = now + 700;
+    r.lane.classList.remove('running');
+    r.lane.classList.add('sliding', 'caught');
+    r.lane.style.setProperty('--p', r.p);
+    setTimeout(() => r.lane.classList.remove('sliding', 'caught'), 750);
+    r.cn.textContent = `Caught ${r.caught} ${r.caught === 1 ? 'time' : 'times'}`;
+    say1(r, sp.penalty >= 1 ? 'Caught! Back to the start' : 'Caught! Back you go', now, 1500);
+    sfx.caught();
+  }
+
+  const secs = s => s < 60 ? `${s.toFixed(1)} seconds` : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+  function win(r) {
+    S.over = true;
+    S.racers.forEach(x => { x.lane.classList.remove('running', 'dancing'); press(x, false); x.msg.textContent = ''; });
+    scr().dataset.phase = 'win';
+    $('#rWord').textContent = 'FINISH!';
+    sfx.win();
+    let title, stats;
+    if (S.players === 1) {
+      const t = S.runTime / 1000, best = S.best[S.speed], isBest = !best || t < best;
+      if (isBest) { S.best[S.speed] = t; save(); }
+      title = 'You made it!';
+      stats = `${secs(t)} · caught ${r.caught} ${r.caught === 1 ? 'time' : 'times'}` +
+        (best ? (isBest ? '<br><b style="color:#4ade80">New best time!</b>' : `<br>Best: ${secs(best)}`) : '');
+      say('You made it!');
+    } else {
+      title = `${r.name} wins!`;
+      stats = S.racers.map(x => `${x.name}: caught ${x.caught}`).join(' · ');
+      say(`${r.name} wins!`);
+    }
+    $('#winTitle').textContent = title;
+    $('#winStats').innerHTML = stats;
+    setTimeout(() => { if (S.over && S.mode === 'race') $('#rWin').hidden = false; }, 500);
+    confetti();
+  }
+
+  function confetti() {
+    const box = $('#confetti'), colors = ['#16b05a', '#ffc21a', '#e5243b', '#2563eb', '#9333ea', '#ffffff'];
+    box.innerHTML = '';
+    for (let i = 0; i < 100; i++) {
+      const c = document.createElement('i');
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDelay = Math.random() * .8 + 's';
+      c.style.animationDuration = 2.2 + Math.random() * 1.8 + 's';
+      c.style.setProperty('--x', (Math.random() * 30 - 15) + 'vw');
+      c.style.setProperty('--r', (Math.random() * 900 - 450) + 'deg');
+      box.append(c);
+    }
+    setTimeout(() => { box.innerHTML = ''; }, 5000);
+  }
+
+  $('#race').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const a = b.dataset.act;
+    if (a === 'exit' || a === 'menu') exit();
+    else if (a === 'pause') pause();
+    else if (a === 'resume') resume();
+    else if (a === 'again') start('race');
+  });
+
+  // ---------- Keyboard ----------
+  function racerForKey(code) {
+    if (S.players === 1) return ['Space', 'ArrowRight', 'KeyA', 'Enter'].includes(code) ? S.racers[0] : null;
+    return code === 'KeyA' ? S.racers[0] : code === 'KeyL' ? S.racers[1] : null;
+  }
+  addEventListener('keydown', e => {
+    if (!S.mode) return;
+    if (S.mode === 'race' && !S.paused && !S.over) {
+      const r = racerForKey(e.code);
+      if (r) { e.preventDefault(); if (!e.repeat) press(r, true); return; }
+    }
+    if (tapMode() && !S.paused && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); if (!e.repeat) callerTap(); return; }
+    if (e.code === 'Space' || e.code === 'KeyP') { e.preventDefault(); if (!S.over) S.paused ? resume() : pause(); }
+    else if (e.code === 'Escape') exit();
+  });
+  addEventListener('keyup', e => {
+    if (S.mode !== 'race') return;
+    const r = racerForKey(e.code);
+    if (r) press(r, false);
+  });
+
+  // ---------- Housekeeping ----------
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) pause();
+    else if (S.mode) keepAwake(true);
+  });
+  addEventListener('contextmenu', e => e.preventDefault());
+})();
+</script>
+</body>
+</html>
