@@ -126,10 +126,10 @@
   .ghost .gfloat{transform-box:fill-box;transform-origin:50% 50%;animation:gfloat 1.6s infinite alternate ease-in-out}
   .ghost .gshadow{transform-box:fill-box;transform-origin:50% 50%;animation:gshadow 1.6s infinite alternate ease-in-out}
   .ghost .gmouth{transform-box:fill-box;transform-origin:50% 50%;transform:scale(.5)}
-  .ghost.boop .gmouth{animation:boop 2.4s ease-in-out}
+  .ghost.boo .gmouth{animation:boo 2.4s ease-in-out}
   @keyframes gfloat{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-14px) rotate(4deg)}}
   @keyframes gshadow{to{transform:scaleX(.75);opacity:.45}}
-  @keyframes boop{0%{transform:scale(.5)}15%{transform:scale(1.25)}75%{transform:scale(1.05)}85%{transform:scale(.2)}100%{transform:scale(.5)}}
+  @keyframes boo{0%{transform:scale(.5)}15%{transform:scale(1.25)}50%{transform:scale(1.05)}80%{transform:scale(1.2)}100%{transform:scale(.5)}}
   #caller[data-phase=boogie]{animation:disco 1.6s infinite alternate linear}
   #caller[data-phase=boogie] #cWord,
   #caller[data-phase=ready] #cWord{font-size:min(19vw,22vh)}
@@ -330,11 +330,11 @@
     yellow: ['SLOW', 'Yellow light: walk slowly'],
     red:    ['STOP!','Red light: freeze!'],
     boogie: ['BOOGIE!','Boogie light: dance!'],
-    ghost:  ['BOOOOP!','Ghost! Float like a ghost'],
+    ghost:  ['BOOOOO!','Ghost! Float like a ghost'],
   };
   // Boogie light: after a red, sometimes the light turns disco and everyone dances, then it goes red again.
   const BOOGIE_MS = [5000, 8000], BOOGIE_CHANCE = .35;
-  // Ghost button: a big floating ghost that says "booooop" over and over until you tap
+  // Ghost button: a big floating ghost that says "boooooo" over and over until you tap
   const GHOST_MS = [5000, 7000], GHOST_LOOP_MS = 2600;
   const GHOST = `<svg class="ghost" viewBox="0 0 120 150" aria-hidden="true">
       <ellipse class="gshadow" cx="60" cy="144" rx="34" ry="5" fill="rgba(0,0,0,.35)"/>
@@ -434,7 +434,7 @@
     boogie() { [196, 247, 294, 392, 294, 247, 196, 392].forEach((f, i) => tone(f, i * .1, .09, 'square', .14)); },
     win()    { [523, 659, 784].forEach((f, i) => tone(f, i * .12, .22, 'square', .14)); tone(1047, .38, .6, 'square', .14); },
     ghost() {
-      // wobbly "ooooo" that rises and sinks, then a little "p" pop
+      // wobbly "ooooo" that rises and sinks away
       if (!S.sound) return;
       const a = audio(); if (!a) return;
       const t = a.currentTime, o = a.createOscillator(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
@@ -445,7 +445,6 @@
       g.gain.setValueAtTime(.2, t + 1.4); g.gain.exponentialRampToValueAtTime(.0001, t + 1.7);
       o.connect(g).connect(a.destination);
       o.start(t); lfo.start(t); o.stop(t + 1.75); lfo.stop(t + 1.75);
-      tone(900, 1.72, .07, 'square', .2, 1500);
     },
   };
   function say(text, opts = {}) {
@@ -476,7 +475,7 @@
       b.classList.toggle('sel', S[b.dataset.toggle]); b.setAttribute('aria-pressed', S[b.dataset.toggle]);
     });
     $('#callerDesc').textContent = S.callerCtl === 'tap'
-      ? 'Tap once for green or red. Double tap for Boogie. Hit Ghost for a spooky booooop.'
+      ? 'Tap once for green or red. Double tap for Boogie. Hit Ghost for a spooky boooooo.'
       : 'The screen picks the lights at random and calls them out loud. Everyone runs for real.';
   }
   $('#menu').addEventListener('click', e => {
@@ -562,9 +561,9 @@
     clearTimeout(ghostTimer);
     if (S.mode !== 'caller' || S.phase !== 'ghost' || S.paused) return;
     sfx.ghost();
-    say('Boo-oo-oo-oo-oo-oop!', { rate: .7, pitch: .4 });
+    say('Boo-oo-oo-oo-oo-oo-oo!', { rate: .7, pitch: .4 });
     const g = $('#cGhost .ghost');
-    g.classList.remove('boop'); void g.offsetWidth; g.classList.add('boop');
+    g.classList.remove('boo'); void g.offsetWidth; g.classList.add('boo');
     ghostTimer = setTimeout(ghostLoop, GHOST_LOOP_MS);
   }
 
