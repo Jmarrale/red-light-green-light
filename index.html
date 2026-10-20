@@ -248,7 +248,7 @@
       </div>
       <div class="opt"><label>Extras</label>
         <div class="chips">
-          <button data-toggle="voice">Voice</button><button data-toggle="sound">Beeps</button><button data-toggle="warn">Yellow light</button><button data-toggle="boogie">Boogie light</button>
+          <button data-toggle="voice">Voice</button><button data-toggle="sound">Sounds &amp; music</button><button data-toggle="warn">Yellow light</button><button data-toggle="boogie">Boogie light</button>
         </div>
       </div>
     </div>
@@ -256,9 +256,9 @@
       <div class="mascot" data-boogie></div>
       <div class="bc-text">
         <b>Meet Boogie</b>
-        <span>Sometimes the light turns disco. Everybody dance like Boogie, then freeze when it goes red!</span>
+        <span>Sometimes the light turns disco and Boogie's song comes on. Dance like Boogie, then freeze when the music stops!</span>
         <div class="bc-row">
-          <a class="spotify" id="spotifyLink" target="_blank" rel="noopener">SPOTIFY_ICON Dance music</a>
+          <a class="spotify" id="spotifyLink" target="_blank" rel="noopener">SPOTIFY_ICON Spotify</a>
           <button class="linkish" id="setPlaylist">Use my playlist</button>
         </div>
       </div>
@@ -431,7 +431,6 @@
     slow()   { tone(587, 0, .3, 'triangle', .3); },
     stop()   { tone(240, 0, .5, 'sawtooth', .2, 150); },
     caught() { tone(520, 0, .55, 'triangle', .3, 140); },
-    boogie() { [196, 247, 294, 392, 294, 247, 196, 392].forEach((f, i) => tone(f, i * .1, .09, 'square', .14)); },
     win()    { [523, 659, 784].forEach((f, i) => tone(f, i * .12, .22, 'square', .14)); tone(1047, .38, .6, 'square', .14); },
     ghost() {
       // wobbly "ooooo" that rises and sinks away
@@ -455,6 +454,77 @@
     speechSynthesis.speak(u);
   }
   const hush = () => { if ('speechSynthesis' in window) speechSynthesis.cancel(); };
+
+  // ---------- Boogie's song ----------
+  // A 4-bar dance loop made on the fly (drums, bass, chiptune hook over C - G - Am - F).
+  // Notes are scheduled a little ahead; stopping fades the master gain in 40ms, so the music cuts right off.
+  const STEP = 60 / 124 / 4; // one 16th note at 124 BPM
+  const BASS = [48, 43, 45, 41]; // C3, G2, A2, F2
+  const HOOK = [
+    [76,0,79,0,84,0,79,0,76,0,79,0,81,79,0,0],
+    [74,0,79,0,83,0,79,0,74,0,79,0,81,79,0,0],
+    [76,0,81,0,84,0,81,0,76,0,81,0,83,81,0,0],
+    [77,0,81,0,84,0,81,0,79,0,77,0,76,74,72,0],
+  ];
+  const music = { on:false, step:0, next:0, timer:0, out:null };
+  let noiseBuf = null;
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function voice(t, midi, dur, type, vol, cutoff) {
+    const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = type; o.frequency.value = hz(midi);
+    f.type = 'lowpass'; f.frequency.value = cutoff;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(f).connect(g).connect(music.out); o.start(t); o.stop(t + dur + .02);
+  }
+  function hiss(t, dur, vol, type, freq) {
+    if (!noiseBuf) {
+      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noiseBuf; f.type = type; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    s.connect(f).connect(g).connect(music.out); s.start(t); s.stop(t + dur + .02);
+  }
+  function kick(t) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(50, t + .12);
+    g.gain.setValueAtTime(.8, t); g.gain.exponentialRampToValueAtTime(.001, t + .28);
+    o.connect(g).connect(music.out); o.start(t); o.stop(t + .3);
+  }
+  function playStep(step, t) {
+    const bar = Math.floor(step / 16), s = step % 16, root = BASS[bar];
+    if (s % 4 === 0) kick(t);
+    if (s === 4 || s === 12) hiss(t, .16, .5, 'bandpass', 1600);       // clap
+    if (s % 4 === 2) hiss(t, .1, .2, 'highpass', 6000);                 // open hat
+    else if (s % 2 === 1) hiss(t, .035, .1, 'highpass', 8000);         // closed hat
+    if ([0, 3, 8, 11].includes(s)) voice(t, root, .16, 'sawtooth', .32, 900);
+    if ([6, 14].includes(s)) voice(t, root + 12, .12, 'sawtooth', .28, 1200);
+    if (HOOK[bar][s]) voice(t, HOOK[bar][s], .12, 'square', .09, 3200);
+  }
+  function musicTick() {
+    while (music.next < ac.currentTime + .12) {
+      playStep(music.step, music.next);
+      music.next += STEP; music.step = (music.step + 1) % 64;
+    }
+  }
+  function musicStart() {
+    if (music.on || !S.sound || !audio()) return;
+    music.on = true;
+    // a gentle limiter so kick + clap + bass landing together don't crackle on a phone speaker
+    const lim = ac.createDynamicsCompressor();
+    lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 4; lim.attack.value = .003; lim.release.value = .15;
+    music.out = ac.createGain(); music.out.gain.value = .7; music.out.connect(lim).connect(ac.destination);
+    music.step = 0; music.next = ac.currentTime + .05;
+    musicTick(); music.timer = setInterval(musicTick, 25);
+  }
+  function musicStop() {
+    if (!music.on) return;
+    music.on = false; clearInterval(music.timer);
+    const g = music.out, t = ac.currentTime;
+    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0, t + .04);
+    setTimeout(() => g.disconnect(), 150);
+  }
 
   // ---------- Screen helpers ----------
   let wakeLock = null;
@@ -568,7 +638,7 @@
   }
 
   function exit() {
-    clearTimeout(tapTimer); clearTimeout(ghostTimer);
+    clearTimeout(tapTimer); clearTimeout(ghostTimer); musicStop();
     cancelAnimationFrame(S.raf);
     S.mode = null; S.paused = false; S.over = false;
     hush(); keepAwake(false);
@@ -591,12 +661,13 @@
 
   function announce(p) {
     clearTimeout(ghostTimer);
+    if (p !== 'boogie') musicStop();
     setWord(LABELS[p][0], LABELS[p][1]);
     if (p === 'ghost') return ghostLoop();
     if (p === 'green')  { sfx.go();   say('Green light!'); }
     if (p === 'yellow') { sfx.slow(); say('Yellow light!'); }
     if (p === 'red')    { sfx.stop(); say('Red light!'); }
-    if (p === 'boogie') { sfx.boogie(); say('Boogie light! Dance!'); }
+    if (p === 'boogie') { musicStart(); say('Boogie light! Dance!'); }
   }
 
   function setWord(word, sub) {
@@ -635,6 +706,7 @@
     if (!S.mode || S.paused || S.over) return;
     clearTimeout(tapTimer); clearTimeout(ghostTimer); lastTap = 0;
     S.paused = true; S.pauseAt = performance.now();
+    musicStop();
     hush();
     S.racers.forEach(r => press(r, false));
     if (S.mode === 'caller') $('#cPaused').hidden = false; else $('#rPaused').hidden = false;
@@ -755,6 +827,7 @@
     S.over = true;
     S.racers.forEach(x => { x.lane.classList.remove('running', 'dancing'); press(x, false); x.msg.textContent = ''; });
     scr().dataset.phase = 'win';
+    musicStop();
     $('#rWord').textContent = 'FINISH!';
     sfx.win();
     let title, stats;
