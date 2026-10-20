@@ -61,6 +61,7 @@
   .chips button{padding:10px 14px;border-radius:999px;background:#2b2f38;font-weight:800;font-size:15px;color:#cfd3da}
   .chips button.sel{background:#fff;color:#111}
   .rules{font-size:15px;line-height:1.45;color:#aeb3bc;text-align:center;font-weight:700;max-width:440px}
+  .ver{font-size:12px;font-weight:700;color:#7d8390}
   .rules b.g{color:var(--green)} .rules b.y{color:var(--yellow)} .rules b.r{color:#ff6b7d} .rules b.b{color:#f0abfc}
 
   /* ---------- Boogie ---------- */
@@ -265,6 +266,7 @@
     </div>
     <p class="rules"><b class="g">Green light</b>: run. <b class="y">Yellow light</b>: walk slowly.
       <b class="b">Boogie light</b>: dance! <b class="r">Red light</b>: freeze! Anyone still moving goes back to the start.</p>
+    <p class="ver">Version 6</p>
   </div>
 </section>
 
@@ -411,8 +413,27 @@
   let ac = null;
   function audio() {
     if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state !== 'running') ac.resume().catch(() => {}); // iPhone can leave it 'suspended' or 'interrupted'
     return ac;
+  }
+  // iPhone mutes web sounds when the silent switch is on. Asking for "playback" audio makes the game
+  // play like a music app instead. Newer iPhones take that request directly; older ones need a silent
+  // looping clip playing to get the same effect.
+  const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let keepAlive = null;
+  function unmuteIOS() {
+    try { if (navigator.audioSession) { navigator.audioSession.type = 'playback'; return; } } catch (e) {}
+    if (!IOS) return;
+    if (!keepAlive) {
+      const n = 2000, b = new DataView(new ArrayBuffer(44 + n)); // 1/4 second of silence, 8 kHz 8-bit WAV
+      [[0, 'RIFF'], [8, 'WAVE'], [12, 'fmt '], [36, 'data']].forEach(([o, s]) => [...s].forEach((c, i) => b.setUint8(o + i, c.charCodeAt(0))));
+      b.setUint32(4, 36 + n, true); b.setUint32(16, 16, true); b.setUint16(20, 1, true); b.setUint16(22, 1, true);
+      b.setUint32(24, 8000, true); b.setUint32(28, 8000, true); b.setUint16(32, 1, true); b.setUint16(34, 8, true); b.setUint32(40, n, true);
+      for (let i = 0; i < n; i++) b.setUint8(44 + i, 128);
+      keepAlive = new Audio(URL.createObjectURL(new Blob([b.buffer], { type: 'audio/wav' })));
+      keepAlive.loop = true; keepAlive.setAttribute('playsinline', '');
+    }
+    keepAlive.play().catch(() => {});
   }
   function tone(freq, at, dur, type, vol, slideTo) {
     if (!S.sound) return;
@@ -530,13 +551,13 @@
   }
   function playStep(step, t) {
     const bar = Math.floor(step / 16), s = step % 16, root = BASS[bar];
-    if (s % 4 === 0) kick(t);
+    if (s % 4 === 0) { kick(t); hiss(t, .02, .3, 'highpass', 2500); } // thump + click (phones can't play the low thump)
     if (s === 4 || s === 12) hiss(t, .16, .5, 'bandpass', 1600);       // clap
     if (s % 4 === 2) hiss(t, .1, .2, 'highpass', 6000);                 // open hat
     else if (s % 2 === 1) hiss(t, .035, .1, 'highpass', 8000);         // closed hat
-    if ([0, 3, 8, 11].includes(s)) voice(t, root, .16, 'sawtooth', .32, 900);
-    if ([6, 14].includes(s)) voice(t, root + 12, .12, 'sawtooth', .28, 1200);
-    if (HOOK[bar][s]) voice(t, HOOK[bar][s], .12, 'square', .09, 3200);
+    if ([0, 3, 8, 11].includes(s)) voice(t, root, .16, 'sawtooth', .32, 1500);
+    if ([6, 14].includes(s)) voice(t, root + 12, .12, 'sawtooth', .28, 1800);
+    if (HOOK[bar][s]) voice(t, HOOK[bar][s], .12, 'square', .14, 3200);
   }
   function musicTick() {
     while (music.next < ac.currentTime + .12) {
@@ -607,8 +628,7 @@
 
   // ---------- Game flow ----------
   function start(mode) {
-    // Let our beeps play over Spotify instead of stopping it (iPhone, Safari 17+)
-    try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
+    unmuteIOS(); // sound plays even with the iPhone's silent switch on
     audio(); // unlock audio inside the tap
     cancelAnimationFrame(S.raf);
     S.mode = mode; S.paused = false; S.over = false; S.runTime = 0;
@@ -678,6 +698,7 @@
     cancelAnimationFrame(S.raf);
     S.mode = null; S.paused = false; S.over = false;
     hush(); keepAwake(false);
+    if (keepAlive) keepAlive.pause();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     $('#confetti').innerHTML = '';
     show('menu');
@@ -938,6 +959,10 @@
     else if (S.mode) keepAwake(true);
   });
   addEventListener('contextmenu', e => e.preventDefault());
+  // If the phone paused our sound (a call, Siri, the screen dimming), the next touch brings it back
+  ['pointerdown', 'keydown'].forEach(type => addEventListener(type, () => {
+    if (S.mode && ac && ac.state !== 'running') ac.resume().catch(() => {});
+  }, true));
 })();
 </script>
 </body>
