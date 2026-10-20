@@ -112,7 +112,24 @@
   .call{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;text-align:center;padding:0 12px}
   #cWord{font-size:min(26vw,40vh);font-weight:900;line-height:.9;letter-spacing:-.02em;text-shadow:0 6px 0 rgba(0,0,0,.15)}
   #cSub{font-size:min(7vw,6.5vh);font-weight:900;opacity:.95}
-  .hint{text-align:center;font-weight:800;font-size:16px;padding:0 0 max(18px, env(safe-area-inset-bottom))}
+  .hint{text-align:center;font-weight:800;font-size:16px}
+  .cbottom{display:flex;flex-direction:column;align-items:center;gap:12px;padding:0 16px max(18px, env(safe-area-inset-bottom))}
+  .ghost-btn{display:inline-flex;align-items:center;gap:10px;padding:10px 24px 10px 16px;border-radius:999px;background:#f4f1ff;color:#1b1440;
+    font-weight:900;font-size:22px;box-shadow:0 6px 0 rgba(0,0,0,.28);transition:transform .06s, box-shadow .06s}
+  .ghost-btn:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.28)}
+  .ghost-btn svg{width:30px;height:34px}
+  #caller[data-phase=ghost]{background:radial-gradient(circle at 50% 38%, #3b2f7a 0%, #140f2e 72%)}
+  #caller[data-phase=ghost] #cWord{font-size:min(19vw,20vh)}
+  #cGhost{display:none;width:min(62vw,38vh)}
+  #caller[data-phase=ghost] #cGhost{display:block}
+  .ghost{display:block;width:100%;height:auto;overflow:visible}
+  .ghost .gfloat{transform-box:fill-box;transform-origin:50% 50%;animation:gfloat 1.6s infinite alternate ease-in-out}
+  .ghost .gshadow{transform-box:fill-box;transform-origin:50% 50%;animation:gshadow 1.6s infinite alternate ease-in-out}
+  .ghost .gmouth{transform-box:fill-box;transform-origin:50% 50%;transform:scale(.5)}
+  .ghost.boop .gmouth{animation:boop 2.4s ease-in-out}
+  @keyframes gfloat{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-14px) rotate(4deg)}}
+  @keyframes gshadow{to{transform:scaleX(.75);opacity:.45}}
+  @keyframes boop{0%{transform:scale(.5)}15%{transform:scale(1.25)}75%{transform:scale(1.05)}85%{transform:scale(.2)}100%{transform:scale(.5)}}
   #caller[data-phase=boogie]{animation:disco 1.6s infinite alternate linear}
   #caller[data-phase=boogie] #cWord,
   #caller[data-phase=ready] #cWord{font-size:min(19vw,22vh)}
@@ -258,8 +275,14 @@
     <a class="spotify" id="cSpotify" target="_blank" rel="noopener">SPOTIFY_ICON Music</a>
     <button class="icon" data-act="pause" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg></button>
   </div>
-  <div class="call"><div id="cBoogie" data-boogie></div><div id="cWord">3</div><div id="cSub">Get ready</div></div>
-  <div class="hint" id="cHint">Tap anywhere to pause</div>
+  <div class="call"><div id="cBoogie" data-boogie></div><div id="cGhost" data-ghost></div><div id="cWord">3</div><div id="cSub">Get ready</div></div>
+  <div class="cbottom">
+    <button class="ghost-btn" data-act="ghost" aria-label="Ghost">
+      <svg viewBox="0 0 30 34" aria-hidden="true"><path d="M3 15a12 12 0 0 1 24 0v15l-4-3-4 3-4-3-4 3-4-3-4 3z" fill="#1b1440"/><ellipse cx="11" cy="15" rx="2.2" ry="3.2" fill="#fff"/><ellipse cx="19" cy="15" rx="2.2" ry="3.2" fill="#fff"/><ellipse cx="15" cy="22" rx="2" ry="2.6" fill="#fff"/></svg>
+      Ghost
+    </button>
+    <div class="hint" id="cHint">Tap anywhere to pause</div>
+  </div>
   <div id="cPaused" class="overlay" hidden><b>Paused</b><span>Tap to keep playing</span></div>
 </section>
 
@@ -307,9 +330,24 @@
     yellow: ['SLOW', 'Yellow light: walk slowly'],
     red:    ['STOP!','Red light: freeze!'],
     boogie: ['BOOGIE!','Boogie light: dance!'],
+    ghost:  ['BOOOOP!','Ghost! Float like a ghost'],
   };
   // Boogie light: after a red, sometimes the light turns disco and everyone dances, then it goes red again.
   const BOOGIE_MS = [5000, 8000], BOOGIE_CHANCE = .35;
+  // Ghost button: a big floating ghost that says "booooop" over and over until you tap
+  const GHOST_MS = [5000, 7000], GHOST_LOOP_MS = 2600;
+  const GHOST = `<svg class="ghost" viewBox="0 0 120 150" aria-hidden="true">
+      <ellipse class="gshadow" cx="60" cy="144" rx="34" ry="5" fill="rgba(0,0,0,.35)"/>
+      <g class="gfloat">
+        <ellipse cx="14" cy="80" rx="12" ry="7" transform="rotate(-35 14 80)" fill="#f4f1ff"/>
+        <ellipse cx="106" cy="80" rx="12" ry="7" transform="rotate(35 106 80)" fill="#f4f1ff"/>
+        <path d="M20 60 A40 40 0 0 1 100 60 V122 Q93 134 86 122 Q79 110 72 122 Q65 134 58 122 Q51 110 44 122 Q37 134 30 122 Q25 114 20 122 Z" fill="#f4f1ff"/>
+        <path d="M30 52 A30 30 0 0 1 52 26" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="46" cy="58" rx="7" ry="10" fill="#1b1440"/><ellipse cx="74" cy="58" rx="7" ry="10" fill="#1b1440"/>
+        <circle cx="48" cy="54" r="2.6" fill="#fff"/><circle cx="76" cy="54" r="2.6" fill="#fff"/>
+        <circle cx="36" cy="74" r="5" fill="#ffb3c7"/><circle cx="84" cy="74" r="5" fill="#ffb3c7"/>
+        <ellipse class="gmouth" cx="60" cy="84" rx="8" ry="11" fill="#1b1440"/>
+      </g></svg>`;
   const SPOTIFY_DEFAULT = 'https://open.spotify.com/search/kids%20dance%20party';
   const SPOTIFY_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#000"/><path d="M6.4 9.3c3.8-1.1 8-.8 11.1 1M7.1 12.4c3.1-.8 6.5-.5 9.1.9M7.8 15.3c2.5-.6 5-.4 7.1.7" stroke="#1ed760" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`;
   const BOOGIE = `<svg class="boogie" viewBox="0 0 100 112" aria-hidden="true">
@@ -362,6 +400,7 @@
     } catch (e) {}
   };
   document.querySelectorAll('[data-boogie]').forEach(el => { el.innerHTML = BOOGIE; });
+  document.querySelectorAll('[data-ghost]').forEach(el => { el.innerHTML = GHOST; });
   document.querySelectorAll('.spotify').forEach(el => { el.innerHTML = el.innerHTML.replace('SPOTIFY_ICON', SPOTIFY_ICON); });
   function syncSpotify() {
     document.querySelectorAll('.spotify').forEach(a => { a.href = S.spotify || SPOTIFY_DEFAULT; });
@@ -394,12 +433,26 @@
     caught() { tone(520, 0, .55, 'triangle', .3, 140); },
     boogie() { [196, 247, 294, 392, 294, 247, 196, 392].forEach((f, i) => tone(f, i * .1, .09, 'square', .14)); },
     win()    { [523, 659, 784].forEach((f, i) => tone(f, i * .12, .22, 'square', .14)); tone(1047, .38, .6, 'square', .14); },
+    ghost() {
+      // wobbly "ooooo" that rises and sinks, then a little "p" pop
+      if (!S.sound) return;
+      const a = audio(); if (!a) return;
+      const t = a.currentTime, o = a.createOscillator(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(330, t); o.frequency.linearRampToValueAtTime(460, t + .5); o.frequency.linearRampToValueAtTime(210, t + 1.6);
+      lfo.frequency.value = 6; lg.gain.value = 16; lfo.connect(lg).connect(o.frequency);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.2, t + .15);
+      g.gain.setValueAtTime(.2, t + 1.4); g.gain.exponentialRampToValueAtTime(.0001, t + 1.7);
+      o.connect(g).connect(a.destination);
+      o.start(t); lfo.start(t); o.stop(t + 1.75); lfo.stop(t + 1.75);
+      tone(900, 1.72, .07, 'square', .2, 1500);
+    },
   };
-  function say(text) {
+  function say(text, opts = {}) {
     if (!S.voice || !('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05; u.pitch = 1.15; u.volume = 1;
+    u.rate = opts.rate || 1.05; u.pitch = opts.pitch || 1.15; u.volume = 1;
     speechSynthesis.speak(u);
   }
   const hush = () => { if ('speechSynthesis' in window) speechSynthesis.cancel(); };
@@ -423,7 +476,7 @@
       b.classList.toggle('sel', S[b.dataset.toggle]); b.setAttribute('aria-pressed', S[b.dataset.toggle]);
     });
     $('#callerDesc').textContent = S.callerCtl === 'tap'
-      ? 'Tap once for green or red. Double tap for Boogie. Everyone runs for real.'
+      ? 'Tap once for green or red. Double tap for Boogie. Hit Ghost for a spooky booooop.'
       : 'The screen picks the lights at random and calls them out loud. Everyone runs for real.';
   }
   $('#menu').addEventListener('click', e => {
@@ -489,7 +542,7 @@
     }
     lastTap = now;
     clearTimeout(tapTimer);
-    tapTimer = setTimeout(() => setManual(S.phase === 'green' || S.phase === 'boogie' ? 'red' : 'green'), DOUBLE_TAP_MS);
+    tapTimer = setTimeout(() => setManual(['green', 'boogie', 'ghost'].includes(S.phase) ? 'red' : 'green'), DOUBLE_TAP_MS);
   }
   function setManual(p) {
     if (S.mode !== 'caller' || S.paused) return;
@@ -497,8 +550,26 @@
     announce(p);
   }
 
+  // Ghost button flips the ghost on, and back to red when pressed again
+  function toggleGhost() {
+    clearTimeout(tapTimer); lastTap = 0;
+    const next = S.phase === 'ghost' ? 'red' : 'ghost';
+    if (tapMode()) setManual(next);
+    else if (S.phase !== 'count') setPhase(next, performance.now());
+  }
+  let ghostTimer = 0;
+  function ghostLoop() {
+    clearTimeout(ghostTimer);
+    if (S.mode !== 'caller' || S.phase !== 'ghost' || S.paused) return;
+    sfx.ghost();
+    say('Boo-oo-oo-oo-oo-oop!', { rate: .7, pitch: .4 });
+    const g = $('#cGhost .ghost');
+    g.classList.remove('boop'); void g.offsetWidth; g.classList.add('boop');
+    ghostTimer = setTimeout(ghostLoop, GHOST_LOOP_MS);
+  }
+
   function exit() {
-    clearTimeout(tapTimer);
+    clearTimeout(tapTimer); clearTimeout(ghostTimer);
     cancelAnimationFrame(S.raf);
     S.mode = null; S.paused = false; S.over = false;
     hush(); keepAwake(false);
@@ -513,14 +584,16 @@
     const sp = SPEEDS[S.speed];
     S.phase = p; S.phaseStart = now; S.countShown = 0;
     S.phaseEnd = now + (p === 'count' ? 2400 : p === 'green' ? rand(sp.green) : p === 'yellow' ? sp.yellow
-      : p === 'boogie' ? rand(BOOGIE_MS) : rand(sp.red));
+      : p === 'boogie' ? rand(BOOGIE_MS) : p === 'ghost' ? rand(GHOST_MS) : rand(sp.red));
     scr().dataset.phase = p;
     if (p === 'red') S.racers.forEach(r => { r.caughtThisRed = false; });
     if (p !== 'count') announce(p);
   }
 
   function announce(p) {
+    clearTimeout(ghostTimer);
     setWord(LABELS[p][0], LABELS[p][1]);
+    if (p === 'ghost') return ghostLoop();
     if (p === 'green')  { sfx.go();   say('Green light!'); }
     if (p === 'yellow') { sfx.slow(); say('Yellow light!'); }
     if (p === 'red')    { sfx.stop(); say('Red light!'); }
@@ -539,7 +612,7 @@
     let next;
     if (p === 'count') next = 'green';
     else if (p === 'green') next = S.warn ? 'yellow' : 'red';
-    else if (p === 'yellow' || p === 'boogie') next = 'red';
+    else if (p === 'yellow' || p === 'boogie' || p === 'ghost') next = 'red';
     else next = S.boogie && S.beforeRed !== 'boogie' && Math.random() < BOOGIE_CHANCE ? 'boogie' : 'green';
     if (next === 'red') S.beforeRed = p;
     setPhase(next, now);
@@ -561,7 +634,7 @@
 
   function pause() {
     if (!S.mode || S.paused || S.over) return;
-    clearTimeout(tapTimer); lastTap = 0;
+    clearTimeout(tapTimer); clearTimeout(ghostTimer); lastTap = 0;
     S.paused = true; S.pauseAt = performance.now();
     hush();
     S.racers.forEach(r => press(r, false));
@@ -585,12 +658,13 @@
     const b = e.target.closest('[data-act]');
     if (b && b.dataset.act === 'exit') return exit();
     if (b && b.dataset.act === 'pause') return S.paused ? resume() : pause();
+    if (b && b.dataset.act === 'ghost') { if (S.paused) resume(); return toggleGhost(); }
     if (S.paused) return resume();
     if (!tapMode()) pause(); // random lights: tap anywhere to pause
   });
   // pointerdown instead of click so the lights answer the instant a finger lands
   $('#caller').addEventListener('pointerdown', e => {
-    if (!tapMode() || S.paused || e.target.closest('.topbar a, .topbar button')) return;
+    if (!tapMode() || S.paused || e.target.closest('.topbar a, .topbar button, .ghost-btn')) return;
     callerTap();
   });
 
@@ -740,6 +814,7 @@
       if (r) { e.preventDefault(); if (!e.repeat) press(r, true); return; }
     }
     if (tapMode() && !S.paused && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); if (!e.repeat) callerTap(); return; }
+    if (S.mode === 'caller' && !S.paused && e.code === 'KeyG') { if (!e.repeat) toggleGhost(); return; }
     if (e.code === 'Space' || e.code === 'KeyP') { e.preventDefault(); if (!S.over) S.paused ? resume() : pause(); }
     else if (e.code === 'Escape') exit();
   });
