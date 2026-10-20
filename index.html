@@ -119,15 +119,21 @@
     font-weight:900;font-size:22px;box-shadow:0 6px 0 rgba(0,0,0,.28);transition:transform .06s, box-shadow .06s}
   .ghost-btn:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.28)}
   .ghost-btn svg{width:30px;height:34px}
-  #caller[data-phase=ghost]{background:radial-gradient(circle at 50% 38%, #3b2f7a 0%, #140f2e 72%)}
-  #caller[data-phase=ghost] #cWord{font-size:min(19vw,20vh)}
+  #caller[data-phase=ghost]{background:radial-gradient(circle at 50% 38%, #6b5ad6 0%, #2b2272 75%)}
+  #caller[data-phase=ghost] #cWord{font-size:min(15vw,18vh)}
   #cGhost{display:none;width:min(62vw,38vh)}
   #caller[data-phase=ghost] #cGhost{display:block}
   .ghost{display:block;width:100%;height:auto;overflow:visible}
   .ghost .gfloat{transform-box:fill-box;transform-origin:50% 50%;animation:gfloat 1.6s infinite alternate ease-in-out}
   .ghost .gshadow{transform-box:fill-box;transform-origin:50% 50%;animation:gshadow 1.6s infinite alternate ease-in-out}
   .ghost .gmouth{transform-box:fill-box;transform-origin:50% 50%;transform:scale(.5)}
-  .ghost.boo .gmouth{animation:boo 2.3s ease-in-out}
+  .ghost.boo .gmouth{animation:boo 1.7s ease-in-out}
+  .ghost .gsmile{opacity:0}
+  .ghost.hi .gsmile{opacity:1}
+  .ghost.hi .gmouth{opacity:0}
+  .ghost .garm{transform-box:fill-box;transform-origin:0% 50%}
+  .ghost.hi .garm{animation:wave .15s 6 alternate ease-in-out}
+  @keyframes wave{to{transform:rotate(-55deg)}}
   @keyframes gfloat{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-14px) rotate(4deg)}}
   @keyframes gshadow{to{transform:scaleX(.75);opacity:.45}}
   @keyframes boo{0%{transform:scale(.5)}15%{transform:scale(1.25)}50%{transform:scale(1.05)}80%{transform:scale(1.2)}100%{transform:scale(.5)}}
@@ -266,7 +272,7 @@
     </div>
     <p class="rules"><b class="g">Green light</b>: run. <b class="y">Yellow light</b>: walk slowly.
       <b class="b">Boogie light</b>: dance! <b class="r">Red light</b>: freeze! Anyone still moving goes back to the start.</p>
-    <p class="ver">Version 6</p>
+    <p class="ver">Version 7</p>
   </div>
 </section>
 
@@ -332,23 +338,24 @@
     yellow: ['SLOW', 'Yellow light: walk slowly'],
     red:    ['STOP!','Red light: freeze!'],
     boogie: ['BOOGIE!','Boogie light: dance!'],
-    ghost:  ['BOOOOO!','Ghost! Float like a ghost'],
+    ghost:  ['BOOOO HI!','Friendly ghost! Wave hi!'],
   };
   // Boogie light: after a red, sometimes the light turns disco and everyone dances, then it goes red again.
   const BOOGIE_MS = [5000, 8000], BOOGIE_CHANCE = .35;
   // Ghost button: a big floating ghost that says "boooooo" over and over until you tap
-  const GHOST_MS = [5000, 7000], GHOST_BOO_S = 2.3, GHOST_LOOP_MS = 3000;
+  const GHOST_MS = [5000, 7000], GHOST_BOO_S = 1.7, GHOST_HI_AT = 1.78, GHOST_LOOP_MS = 3000, GHOST_GAIN = 1.2;
   const GHOST = `<svg class="ghost" viewBox="0 0 120 150" aria-hidden="true">
       <ellipse class="gshadow" cx="60" cy="144" rx="34" ry="5" fill="rgba(0,0,0,.35)"/>
       <g class="gfloat">
         <ellipse cx="14" cy="80" rx="12" ry="7" transform="rotate(-35 14 80)" fill="#f4f1ff"/>
-        <ellipse cx="106" cy="80" rx="12" ry="7" transform="rotate(35 106 80)" fill="#f4f1ff"/>
+        <g class="garm"><ellipse cx="106" cy="80" rx="12" ry="7" transform="rotate(35 106 80)" fill="#f4f1ff"/></g>
         <path d="M20 60 A40 40 0 0 1 100 60 V122 Q93 134 86 122 Q79 110 72 122 Q65 134 58 122 Q51 110 44 122 Q37 134 30 122 Q25 114 20 122 Z" fill="#f4f1ff"/>
         <path d="M30 52 A30 30 0 0 1 52 26" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
         <ellipse cx="46" cy="58" rx="7" ry="10" fill="#1b1440"/><ellipse cx="74" cy="58" rx="7" ry="10" fill="#1b1440"/>
         <circle cx="48" cy="54" r="2.6" fill="#fff"/><circle cx="76" cy="54" r="2.6" fill="#fff"/>
         <circle cx="36" cy="74" r="5" fill="#ffb3c7"/><circle cx="84" cy="74" r="5" fill="#ffb3c7"/>
         <ellipse class="gmouth" cx="60" cy="84" rx="8" ry="11" fill="#1b1440"/>
+        <path class="gsmile" d="M48 80 Q60 96 72 80" stroke="#1b1440" stroke-width="5" fill="#ff8fab" stroke-linecap="round"/>
       </g></svg>`;
   const SPOTIFY_DEFAULT = 'https://open.spotify.com/search/kids%20dance%20party';
   const SPOTIFY_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#000"/><path d="M6.4 9.3c3.8-1.1 8-.8 11.1 1M7.1 12.4c3.1-.8 6.5-.5 9.1.9M7.8 15.3c2.5-.6 5-.4 7.1.7" stroke="#1ed760" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`;
@@ -454,49 +461,56 @@
     caught() { tone(520, 0, .55, 'triangle', .3, 140); },
     win()    { [523, 659, 784].forEach((f, i) => tone(f, i * .12, .22, 'square', .14)); tone(1047, .38, .6, 'square', .14); },
     ghost() {
-      // A voice-like "Booooooo": a buzzing voice plus breath, shaped into an "oo" vowel by three
-      // vocal-tract resonances, lips opening for the "b", a wavering pitch, and an echoey room.
+      // A friendly "Boooooo... hi!" in one cartoon voice: high and bouncy, light breath, a little room.
       if (!S.sound && !S.voice) return;
-      const a = audio(); if (!a) return;
-      const t = a.currentTime + .02, D = GHOST_BOO_S;
-      const voice = a.createOscillator(); voice.type = 'sawtooth';
-      const f0 = voice.frequency;
-      f0.setValueAtTime(165, t); f0.exponentialRampToValueAtTime(235, t + .35);
-      f0.linearRampToValueAtTime(220, t + 1.1); f0.exponentialRampToValueAtTime(140, t + D);
-      const vib = a.createOscillator(), vibDepth = a.createGain();   // ghostly waver that grows in
-      vib.frequency.value = 5.2; vibDepth.gain.setValueAtTime(0, t); vibDepth.gain.linearRampToValueAtTime(11, t + .8);
-      vib.connect(vibDepth).connect(f0);
-      const breath = a.createBufferSource(), breathAmt = a.createGain();
-      breath.buffer = getNoise(); breath.loop = true; breathAmt.gain.value = .5;
-      const src = a.createGain();
-      voice.connect(src); breath.connect(breathAmt).connect(src);
-      const env = a.createGain();
-      env.gain.setValueAtTime(.0001, t); env.gain.exponentialRampToValueAtTime(1, t + .07);
-      env.gain.setValueAtTime(1, t + .6); env.gain.linearRampToValueAtTime(.75, t + D * .6); env.gain.exponentialRampToValueAtTime(.0001, t + D);
-      // "oo" vowel resonances (Hz, sharpness, level); the first one starts low = lips opening on the "b"
-      [[300, 2.5, 1], [870, 5, .45], [2240, 9, .12]].forEach(([hzF, q, lvl], i) => {
-        const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = hzF; bp.Q.value = q;
-        if (i === 0) { bp.frequency.setValueAtTime(180, t); bp.frequency.linearRampToValueAtTime(300, t + .09); }
-        const g = a.createGain(); g.gain.value = lvl;
-        src.connect(bp).connect(g).connect(env);
+      if (!audio()) return;
+      const t = ac.currentTime + .02, h = t + GHOST_HI_AT;
+      sing(t, { // "Booooo": "oo" vowel, lips opening on the "b", pitch bobs up and ends on a lift
+        pitch: [[0, 270], [.25, 345], [.9, 325], [1.45, 300], [GHOST_BOO_S, 335]], wobble: 6,
+        forms: [[[[0, 200], [.08, 340]], 3, 1], [[[0, 1000]], 5, .5], [[[0, 2700]], 9, .15]],
+        voiceEnv: [[0, 0], [.06, 1], [1.35, .9], [GHOST_BOO_S, 0]],
+        breathEnv: [[0, 0], [.06, .2], [GHOST_BOO_S, 0]],
       });
-      const out = a.createGain(); out.gain.value = 1.2;
-      env.connect(out); out.connect(a.destination); out.connect(spookyRoom());
-      voice.start(t); vib.start(t); breath.start(t);
-      [voice, vib, breath].forEach(n => n.stop(t + D + .05));
+      sing(h, { // "hi!": a puff of breath for the "h", then "ah" sliding to "ee", pitch up then down
+        pitch: [[0, 360], [.07, 360], [.2, 430], [.42, 390]],
+        forms: [[[[0, 950], [.12, 950], [.38, 400]], 3.5, 1], [[[0, 1550], [.12, 1600], [.38, 2750]], 6, .6], [[[0, 2900], [.38, 3300]], 10, .2]],
+        voiceEnv: [[0, 0], [.06, 0], [.09, 1], [.3, 1], [.42, 0]],
+        breathEnv: [[0, 0], [.015, .9], [.07, .5], [.1, .12], [.42, 0]],
+      });
     },
   };
-  // Echoey room for the ghost: a long, fading burst of noise used as a reverb
+  // Tiny voice synth: a buzzing voice plus breath, shaped into vowels by three vocal-tract resonances.
+  // Every setting is a list of [seconds from start, value] points joined by straight lines.
+  function sing(t, { pitch, wobble = 0, forms, voiceEnv, breathEnv }) {
+    const a = ac, end = t + Math.max(...voiceEnv.map(p => p[0])) + .05;
+    const line = (param, pts) => pts.forEach(([dt, v], i) => i ? param.linearRampToValueAtTime(v, t + dt) : param.setValueAtTime(v, t + dt));
+    const voice = a.createOscillator(); voice.type = 'sawtooth'; line(voice.frequency, pitch);
+    const vib = a.createOscillator(), vibDepth = a.createGain();
+    vib.frequency.value = 6; line(vibDepth.gain, [[0, 0], [.6, wobble]]); vib.connect(vibDepth).connect(voice.frequency);
+    const breath = a.createBufferSource(); breath.buffer = getNoise(); breath.loop = true;
+    const vAmt = a.createGain(), bAmt = a.createGain(), src = a.createGain(), out = a.createGain();
+    line(vAmt.gain, voiceEnv); line(bAmt.gain, breathEnv);
+    voice.connect(vAmt).connect(src); breath.connect(bAmt).connect(src);
+    forms.forEach(([track, q, lvl]) => {
+      const bp = a.createBiquadFilter(), g = a.createGain();
+      bp.type = 'bandpass'; bp.Q.value = q; line(bp.frequency, track); g.gain.value = lvl;
+      src.connect(bp).connect(g).connect(out);
+    });
+    out.gain.value = GHOST_GAIN;
+    out.connect(a.destination); out.connect(ghostRoom());
+    [voice, vib, breath].forEach(n => { n.start(t); n.stop(end); });
+  }
+  // A small, warm room for the ghost's voice (a short fading burst of noise used as a reverb)
   let room = null;
-  function spookyRoom() {
+  function ghostRoom() {
     if (room) return room;
-    const len = Math.floor(ac.sampleRate * 2.8), ir = ac.createBuffer(2, len, ac.sampleRate);
+    const len = Math.floor(ac.sampleRate * .9), ir = ac.createBuffer(2, len, ac.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = ir.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
     }
     const conv = ac.createConvolver(), wet = ac.createGain();
-    conv.buffer = ir; wet.gain.value = .35;
+    conv.buffer = ir; wet.gain.value = .12;
     conv.connect(wet).connect(ac.destination);
     return (room = conv);
   }
@@ -682,19 +696,21 @@
     if (tapMode()) setManual(next);
     else if (S.phase !== 'count') setPhase(next, performance.now());
   }
-  let ghostTimer = 0;
+  let ghostTimer = 0, hiTimer = 0;
+  function stopGhost() { clearTimeout(ghostTimer); clearTimeout(hiTimer); }
   function ghostLoop() {
-    clearTimeout(ghostTimer);
+    stopGhost();
     if (S.mode !== 'caller' || S.phase !== 'ghost' || S.paused) return;
     hush(); // no robot voice over the ghost
     sfx.ghost();
     const g = $('#cGhost .ghost');
-    g.classList.remove('boo'); void g.offsetWidth; g.classList.add('boo');
+    g.classList.remove('boo', 'hi'); void g.offsetWidth; g.classList.add('boo');
+    hiTimer = setTimeout(() => { g.classList.add('hi'); setTimeout(() => g.classList.remove('hi'), 900); }, GHOST_HI_AT * 1000);
     ghostTimer = setTimeout(ghostLoop, GHOST_LOOP_MS);
   }
 
   function exit() {
-    clearTimeout(tapTimer); clearTimeout(ghostTimer); musicStop();
+    clearTimeout(tapTimer); stopGhost(); musicStop();
     cancelAnimationFrame(S.raf);
     S.mode = null; S.paused = false; S.over = false;
     hush(); keepAwake(false);
@@ -717,7 +733,7 @@
   }
 
   function announce(p) {
-    clearTimeout(ghostTimer);
+    stopGhost();
     if (p !== 'boogie') musicStop();
     setWord(LABELS[p][0], LABELS[p][1]);
     if (p === 'ghost') return ghostLoop();
@@ -761,7 +777,7 @@
 
   function pause() {
     if (!S.mode || S.paused || S.over) return;
-    clearTimeout(tapTimer); clearTimeout(ghostTimer); lastTap = 0;
+    clearTimeout(tapTimer); stopGhost(); lastTap = 0;
     S.paused = true; S.pauseAt = performance.now();
     musicStop();
     hush();
